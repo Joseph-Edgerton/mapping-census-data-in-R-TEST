@@ -43,3 +43,5 @@ Workshop project directory:
 |---+-- 2025-07-22_workshop_spatial_census_r_code_v1_HANDOUT.qmd
 
 \-- README.md
+
+You will need to add a data and output folder into your project directory.

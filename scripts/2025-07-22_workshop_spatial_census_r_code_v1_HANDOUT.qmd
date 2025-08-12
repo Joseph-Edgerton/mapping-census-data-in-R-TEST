@@ -1,0 +1,388 @@
+---
+title: "2025-07-22_workshop_spatial_census_r_code"
+format: html
+---
+
+Purpose: Part of the fall series of RDS workshops, this workshop will provide a quick overview to gathering Census data as well as using multiple map packages for creating thematic maps in R.
+
+## Setup
+
+::: callout-note
+Common R setup issues: "Do you want to install from sources the package which needs compilation?" 
+See 7.1.3 <https://r-guide.steveharoz.com/libraries-and-packages.html>
+:::
+
+### Install Packages
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+my_packages <- c(
+  "tidyverse",
+  "here",
+  "tidycensus",
+  "sf",
+  "units",
+  "tmap",
+  "mapsf",
+  "mapgl"
+)
+
+install.packages(pkgs = my_packages, repos = "https://cran.r-project.org")
+```
+
+### Load Packages
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# General packages
+library(tidyverse)
+library(here)
+# Census packages
+library(tidycensus)
+# Mapping packages
+library(tmap)
+library(mapsf)
+library(mapgl)
+```
+
+### Set aesthetics and options
+
+```{r}
+#| code-summary: "Styles"
+
+# Make sure all subsequent chunks don't have a bunch of unneeded output
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+### Census Key
+
+Here we need to input the key that was emailed to us.
+
+If you haven't received your API key, you can go to this link <https://api.census.gov/data/key_signup.html> and then get your key emailed to you.
+
+1. Enter your information, submit it, and you will see this message: "Success: Your request for a new API key has been successfully submitted"
+
+2. You will recieve email for key in a minute or so, and then you need to wait at least 4 minutes before clicking on "click here to activate your key." This is because the service may not be updated fast enough to verify your key. Waiting a little bit after the email arrives helps everything catch up.
+
+3. After 4 min from recieving the email, click the "click here to activate your key." You should see a message saying "Success." If you do not, wait another few minutes and then try again.
+
+Now that your key is activated we can return to R here.
+
+This function will add the key into your environment variables so you won't have to enter it in the future. You only have to use this function one time and then can comment it out after it stores your key (only needs to be run once).
+
+```{r}
+# tidycensus::census_api_key("INSERT KEY",
+# install = TRUE,
+# overwrite = TRUE)
+```
+
+::: {.callout-note}
+You don't need to use the key if you make less than 500 queries per day but it is still good to have one and it is better to be safe if you are gathering lots of Census data or adjusting your query a lot.
+:::
+
+Here we will restart R, comment out the code chunk above, and then continue with the rest of the script after re-running the code.
+
+Next, let's check that the key was successful.
+
+```{r}
+# Return your environment variable
+Sys.getenv("CENSUS_API_KEY")
+```
+
+If you are successful, it should output a characer string like: "0d7e67624413da7c57d7f1512750693kd36d3675." Please let me know if you are having trouble.
+
+## Data
+
+With the packages loaded, the options set for chunks, and our Census API key entered, we are ready to begin gathering our data.
+
+One of the nice things when working with APIs is not having to read in a bunch of data at the start. However, you may want to save output as you work through an analysis.
+
+### Census Query
+
+This is the main question we will use for this tutorial.
+
+**Question: What was the Median Household Income of Charlottesville City for different neighborhoods in 2022?**
+
+
+
+Diagram to see the variables to think through before writing the query.
+
+```{mermaid}
+flowchart TD
+    subgraph variable
+    Variable -.- id1["Median household income"]
+    end
+    subgraph location
+    Location -.- id2["Charlottesville City, Va"]
+    end
+    subgraph level
+    Level -.- id3["Neighborhood aka `tract`"]
+    end
+    subgraph time
+    Time -.- 2022
+    end
+    Variable --> Location --> Level --> Time
+```
+
+How to do you find Census variables? 1. Google variable name 2. Use `load_variables()` function for a quick lookup.
+
+```{r}
+tidycensus::load_variables(2022, "acs5", cache = TRUE) |> view()
+```
+
+While I've included the variable within the question it can sometimes be difficult to decide on exactly what variable to use. Some are similar to each other with only subtle differences.
+
+If you need to check the documentation about what variables actually represent, use the data.census.gov website and click the "Notes" icon when looking up tables. It provides a lot of good information for understanding variables and methods used to generate them. Additionally, the library [Census LibGuide](https://guides.lib.virginia.edu/c.php?g=761852&p=5462792) has a lot of good information on getting started with Census data.
+
+Now, let's build our query and get our data:
+
+```{r}
+
+```
+
+You should see an "sf" table in your environment pane with 24 rows, representing the 24 tracts for Charlottesville.
+
+#### Check Census query
+
+Quick peek at the data
+
+```{r}
+raw_data |>
+  # View the first few rows of data
+   head()
+```
+
+We see we now have a spatial data frame called a "simple feature collection" that contains some metadata on the type of geometry we have, the bounding box extent, and the Coordinate Reference System we are using.
+
+If you want a refresher on simple feature geometry and some geospatial concepts, there is a great stat-lab article covering this <https://library.virginia.edu/data/articles/spatial-r-using-sf-package>.
+
+Now that we've seen the data, let's make sure everything looks correct by plotting the geometry.
+
+```{r}
+
+```
+
+Ok, it looks alright. No obvious missing areas from what I can see.
+
+::: callout-note
+In a lot of cases, there is too much geometry detail to visualize without maxing out RAM on your computer. In that case, we cut back on the number of vertices used to draw each shape. Here, there are only a couple hundred, small geometries so it is ok to not simplify each one. But if we needed to we could use `st_simplify()` to remove some detail of our geometry.
+:::
+
+Now that we've had a little practice, let's make another as practice
+
+### Q1: Query
+Write and submit a query using tidycensus for the following question:
+
+**What is the differnece in number between Renter occupied housing units and Owner occupied housing units for Albermarle County, VA in 2023?**
+
+### A1: Query
+
+[ANSWER HERE]
+
+### Clean
+
+Next I wanted to clean up the data a bit, let's investigate the columns a little.
+
+#### We have some columns provided to us from the Census:
+
+| Variable | Definition                                 |
+|----------|--------------------------------------------|
+| GEOID    | The identifier for geographic areas        |
+| NAME     | Name of the geography                       |
+| variable | One or more Census table variables queried |
+| estimate | The value for the variable (estimate since it's a sample)  |
+| moe      | Margin of Error   |
+
+: Table of variables from ACS query
+
+Sometimes for plotting groups and similar things you want to have variables together in a column like this as "long data," other times wider data (more columns) is appropriate.
+
+Here, we will widen our data frame to make separate columns for population and median household income. Additionally, I'm just interested in casually plotting these data (no analyses) so I'm going to ignore the moe column and remove it. Census data can get really wide with columns so it's good to only work with columns you need.
+
+```{r}
+
+
+# Quick review of data
+
+```
+
+Great! We have our data in a good format for the second half of the workshop, plotting.
+
+## Plot
+
+Now we have our data, and we are ready to create a thematic map, a map that displays some topic.
+
+While other packages like {ggplot2} can plot the geometry it doen't have some mapping features otherwise available in GIS (e.g., scale bars, north arrows).
+
+For each of the following map packages, we will try to produce the same map using their provided functions.
+
+**Chloropleth map showing all tracts by level of income, with an overlay bubble map of population**
+
+Each map should have two legends for each property or variable displayed and will have a north arrow and scale bar for reference. The goal is to see how the output compares amoung the packages and to see which you may prefer. This is not to say one package is inherenty better than the other.
+
+### {tmap}
+
+The nice thing about {tmap} is that it has a building layers approach to maps like in ggplot2, using "+" signs to add layers.
+
+```{r}
+
+```
+
+We can see from the map that there are areas with large populations but not high median income.
+
+The map itself is little basic, so let's change the color, the bin size, and the legend titles.
+
+```{r}
+
+```
+
+
+::: {.callout-note}
+If you see "[plot mode] fit legend/component: Some legend items or map compoments do not fit well, and are therefore rescaled." notification we may need to adjust auto settings for rescaling. For now, we'll leave it be.
+:::
+
+Finally, let's add a scalebar, a north arrow, and a title. I also want to move and shift the map and components around a little bit too.
+
+```{r}
+
+```
+
+Alright, we're happy with the map now, and we've satisfied our criteria. Let's save it.
+
+```{r}
+
+```
+
+::: {.callout-warning}
+Be careful when adjusting the map sizing, the map viewer in your IDE and the output file may look different due to
+settings you have. Always look at the output to confirm the positions of where things are.
+:::
+
+Summmary:
+{tmap} provides a lot of convenient mapping options that you would see in dedicated GIS software. One feature I apreacite is think is idea of a map frame that's akin to QGIS Print Layout or ArcGIS Layout.
+
+If you are making a few maps it may seem laborious, but if doing a series of maps it may help you be more efficient by copying or looping code.
+
+### {mapsf}
+
+Now, let's take a look at {mapsf}
+
+```{r}
+# Draw the base map
+
+```
+
+Right away, the style of making this map is fairly different. Each layer is drawn completely separately instead of together (e.g., legend overlap). We could adjust the legend and then be done, or we could change the map style.
+
+Let's also change the binning to "equal," adjust the legend titles and map title, and the color scheme
+
+```{r}
+# Create the default base map
+
+```
+
+Here, we are using a different chart type that gives us the same information but in a more efficient manner.
+
+It has some nice defaults. I appreciate the nested proportional circle legend.
+
+Let's finish this map with a north arrow and laying down the shadow effect.
+
+```{r}
+# Create the shadow
+
+```
+
+::: {.callout-note}
+Interestingly, because of the layering aspect, we need need to tell each subsequent function with a map that it needs to be "added" with `add = TRUE`.
+:::
+
+Alright, I think we're ready to save our plot. There aren't as many exporting formats available in this package but you still have a choice of image (PNG) or vector (SVG) representations.
+
+```{r}
+# Save the map as an PNG
+
+```
+
+Summmary:
+{mapsf} provides a way quick way to make thematic maps without a lot of dependencies or external packages. The shadow effects and other features are also nice to add to maps to make them a bit more visually appealing and interesting
+
+It doesn't come with as many features as the other packages but it does offer those with more experience using base R graphics a way to create maps that is familiar.
+
+### {mapgl}
+
+Finally, let's take a look at {mapgl} for some interactive mapping.
+
+```{r}
+# Create breaks for the data and assign palette colors ahead of mapping
+
+
+# Create the map layers and aesthetics
+
+# Base map
+
+    
+```
+
+I'm not quite sure how to make a graduated symbol layer yet with this package but I feel like it's certainly possible.
+
+For now, let's try to change the colors and better define the borders.
+
+```{r}
+ # Create breaks for the data and assign palette colors ahead of mapping
+
+
+# Create the map layers and aesthetics
+
+# Base map
+
+
+```
+
+With it being web mapping, there isn't a clear option for a title. Instead the legend will have to suffice. Also, options are not as clear for adding arrows or scale bars for these web maps. I'm sure these options can be added but there is a lot of options provided in this package to explore.
+
+Summmary:
+{mapgl} has a lot of potential uses being built from javascript mapping libraries for the web. The coding is the most dense of all packages but it provides more flexibility in turn for different aspects and features (e.g., you can control the views people see and create story maps from that).
+
+## Overall summary
+You can begin to see that each package is different and some are not as useful for specific mapping tasks. When working with Census data there are a lot of different geographies and variables to plot, so make sure you understand your data before rushing to plot them.
+
+## Practice
+
+### 1. Easy
+
+TBD
+
+### 2. Hard
+
+TBD
+
+
+## Resources
+Additionally, I cannot share all the features of each package due to length and time (e.g., the {tmap} package also has an interactive component for mapping as well). If you want to explore more then please see the resources provided at the bottom of this script.
+
+What are GEOIDs?
+https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
+
+Spatial Data Visualization with tmap
+https://tmap.geocompx.org/
+
+Cheat sheet for {mapsf}
+https://raw.githubusercontent.com/riatelab/mapsf/master/vignettes/fig/mapsf_cheatsheet.pdf
+
+Package wesbite for {mapgl}
+https://walker-data.com/mapgl/index.html 
+
+Scholars Lab Spatial Technology website
+https://scholarslab.lib.virginia.edu/spatial-technologies/
+
+
+If you have any questions, I'm happy to follow up with a one-on-one consult as well or you can send a request to the Research Data Managment email (dmconsult@virginia.edu).
+
+**Thank you!**
